@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+    <title>Meeting Breaker - Office Brick Breaker Game</title>
+    <link rel="stylesheet" href="src/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Game UI Overlay -->
+        <div id="gameUI">
+            <div id="topBar">
+                <div id="score">Score: <span id="scoreValue">0</span></div>
+                <div id="level">Level: <span id="levelValue">1</span></div>
+                <div id="lives">Lives: <span id="livesValue">3</span></div>
+                <button id="muteButton" class="ui-button">🔊</button>
+            </div>
+            
+            <!-- Active Power-ups Display -->
+            <div id="powerupsDisplay"></div>
+        </div>
+        
+        <!-- Game States Overlays -->
+        <div id="menuScreen" class="screen">
+            <div class="screen-content">
+                <h1>Meeting Breaker</h1>
+                <p class="subtitle">Destroy your calendar meetings!</p>
+                <div class="menu-buttons">
+                    <button id="startButton" class="game-button">Start Game</button>
+                    <button id="instructionsButton" class="game-button">Instructions</button>
+                </div>
+                <div class="difficulty-selector">
+                    <label>Difficulty:</label>
+                    <select id="difficultySelect">
+                        <option value="office">Office Hell</option>
+                        <option value="remote">Remote Work</option>
+                        <option value="freelance">Freelance</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div id="instructionsScreen" class="screen hidden">
+            <div class="screen-content">
+                <h2>How to Play</h2>
+                <div class="instructions">
+                    <p><strong>Goal:</strong> Destroy all meeting blocks to clear the level!</p>
+                    <h3>Meeting Types:</h3>
+                    <ul>
+                        <li><span class="meeting-type normal">Regular</span> - 1 hit to destroy</li>
+                        <li><span class="meeting-type urgent">Urgent</span> - Disappears after 10 seconds</li>
+                        <li><span class="meeting-type endless">Endless</span> - Requires 3 hits</li>
+                        <li><span class="meeting-type deadline">Deadline</span> - Gives bonus points</li>
+                    </ul>
+                    <h3>Power-ups:</h3>
+                    <ul>
+                        <li>☕ Coffee - Speeds up ball</li>
+                        <li>📞 Auto-responder - Expands paddle</li>
+                        <li>⚠️ Critical Error - Slows ball</li>
+                        <li>🏢 Meeting Room - Changes ball direction</li>
+                    </ul>
+                    <h3>Controls:</h3>
+                    <p>Desktop: Use mouse or arrow keys to move paddle</p>
+                    <p>Mobile: Touch and drag to move paddle</p>
+                </div>
+                <button id="backButton" class="game-button">Back to Menu</button>
+            </div>
+        </div>
+        
+        <div id="gameOverScreen" class="screen hidden">
+            <div class="screen-content">
+                <h2 id="gameOverTitle">Game Over</h2>
+                <p id="finalScore">Final Score: <span>0</span></p>
+                <p id="gameOverMessage"></p>
+                <div class="menu-buttons">
+                    <button id="restartButton" class="game-button">Play Again</button>
+                    <button id="menuButton" class="game-button">Main Menu</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="pauseScreen" class="screen hidden">
+            <div class="screen-content">
+                <h2>Game Paused</h2>
+                <div class="menu-buttons">
+                    <button id="resumeButton" class="game-button">Resume</button>
+                    <button id="pauseMenuButton" class="game-button">Main Menu</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Touch Controls for Mobile -->
+        <div id="mobileControls" class="mobile-only">
+            <div id="touchArea">Touch and drag to move paddle</div>
+        </div>
+    </div>
+    
+    <!-- Preload audio -->
+    <audio id="hitSound" preload="auto">
+        <source src="public/sounds/hit.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="successSound" preload="auto">
+        <source src="public/sounds/success.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="backgroundMusic" preload="auto" loop>
+        <source src="public/sounds/background.mp3" type="audio/mpeg">
+    </audio>
+    
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
