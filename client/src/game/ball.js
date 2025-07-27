@@ -9,18 +9,45 @@ export class Ball {
         this.vx = speed * 0.7; // Start at angle
         this.vy = -speed;
         this.speedMultiplier = 1;
+        this.magneticEffect = 0; // Timer for magnetic bonus
         this.trail = [];
         this.maxTrailLength = 5;
     }
     
-    update(deltaTime) {
+    update(deltaTime, bonuses = []) {
+        // Check for magnetic effect on bonuses
+        let magneticForce = { x: 0, y: 0 };
+        if (this.magneticEffect > 0) {
+            const magnetRadius = 120;
+            bonuses.forEach(bonus => {
+                const dx = (bonus.x + bonus.width / 2) - this.x;
+                const dy = (bonus.y + bonus.height / 2) - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Only attract beneficial bonuses
+                if (distance < magnetRadius && !bonus.getBonusData().isDebuff) {
+                    const force = (magnetRadius - distance) / magnetRadius * 0.8;
+                    magneticForce.x += (dx / distance) * force;
+                    magneticForce.y += (dy / distance) * force;
+                }
+            });
+        }
+        
         // Apply speed multiplier from power-ups
         const currentSpeed = this.baseSpeed * this.speedMultiplier;
         const speedRatio = currentSpeed / this.baseSpeed;
         
-        // Update position
-        this.x += this.vx * speedRatio * deltaTime * 60; // 60 FPS normalization
-        this.y += this.vy * speedRatio * deltaTime * 60;
+        // Update position with magnetic force
+        this.x += (this.vx * speedRatio + magneticForce.x) * deltaTime * 60; // 60 FPS normalization
+        this.y += (this.vy * speedRatio + magneticForce.y) * deltaTime * 60;
+        
+        // Decrease magnetic effect timer
+        if (this.magneticEffect > 0) {
+            this.magneticEffect -= deltaTime * 1000; // Convert to milliseconds
+            if (this.magneticEffect <= 0) {
+                this.magneticEffect = 0;
+            }
+        }
         
         // Add to trail
         this.trail.push({ x: this.x, y: this.y, time: Date.now() });

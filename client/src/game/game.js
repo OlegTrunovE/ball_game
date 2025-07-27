@@ -180,7 +180,8 @@ export class Game {
                     type = 'deadline';
                 }
                 
-                this.meetings.push(new Meeting(x, y, blockWidth, blockHeight, type));
+                const hasBonus = Math.random() < 0.15; // 15% chance for bonus meetings
+                this.meetings.push(new Meeting(x, y, blockWidth, blockHeight, type, hasBonus));
             }
         }
         
@@ -190,8 +191,8 @@ export class Game {
     update(deltaTime) {
         if (this.state !== 'playing') return;
         
-        // Update game objects
-        this.ball.update(deltaTime);
+        // Update game objects with magnetic effect
+        this.ball.update(deltaTime, this.bonuses);
         this.paddle.update(deltaTime);
         
         // Update meetings (for urgent ones that expire)
@@ -273,8 +274,12 @@ export class Game {
             this.soundManager.playHit();
         }
         
-        // Ball vs meetings - always bounce back toward paddle
-        this.meetings.forEach((meeting, index) => {
+        // Ball vs meetings - only hit the first collision
+        let hitMeeting = false;
+        for (let index = 0; index < this.meetings.length; index++) {
+            if (hitMeeting) break;
+            
+            const meeting = this.meetings[index];
             if (this.ball.x + this.ball.radius >= meeting.x &&
                 this.ball.x - this.ball.radius <= meeting.x + meeting.width &&
                 this.ball.y + this.ball.radius >= meeting.y &&
@@ -294,8 +299,9 @@ export class Game {
                 
                 // Hit the meeting
                 this.hitMeeting(meeting, index);
+                hitMeeting = true;
             }
-        });
+        }
         
         // Paddle vs power-ups
         this.powerUps.forEach((powerUp, index) => {
@@ -345,7 +351,13 @@ export class Game {
         if (meeting.shouldRemove) {
             // Award points
             const points = this.getMeetingPoints(meeting.type);
-            this.score += points;
+            // Bonus points for urgent meetings if destroyed before expiration
+            const bonusPoints = meeting.type === 'urgent' ? points * 2 : 0;
+            this.score += points + bonusPoints;
+            
+            if (bonusPoints > 0) {
+                this.showFloatingText(meeting.x + meeting.width / 2, meeting.y - 30, `СРОЧНО! +${bonusPoints}`, '#FFD700');
+            }
             
             // Show floating score
             this.showFloatingScore(meeting.x + meeting.width / 2, meeting.y, points);
@@ -356,9 +368,12 @@ export class Game {
             // Create falling meeting animation
             this.createFallingMeeting(meeting);
             
-            // Chance to drop power-up or bonus
+            // Chance to drop power-up or bonus (higher chance if meeting had bonus)
             const settings = this.getDifficultySettings();
-            const bonusChance = settings.bonusChance * this.upgradeManager.getBonusChanceMultiplier();
+            let bonusChance = settings.bonusChance * this.upgradeManager.getBonusChanceMultiplier();
+            if (meeting.hasBonus) {
+                bonusChance = 1.0; // Guaranteed bonus drop from bonus meetings
+            }
             const debuffChance = settings.debuffChance;
             
             const rand = Math.random();
@@ -445,6 +460,15 @@ export class Game {
                 break;
             case 'error':
                 this.ball.speedMultiplier = 1;
+                break;
+            case 'autopilot':
+                this.ball.magneticEffect = 0;
+                break;
+            case 'useless_call':
+                this.ball.speedMultiplier = 1;
+                break;
+            case 'motivation':
+                this.ballDamageMultiplier = 1;
                 break;
         }
         
@@ -677,9 +701,11 @@ export class Game {
                 this.removeRandomMeetingRow();
             },
             autopilot: () => {
-                this.activateMagneticBall();
+                // Add magnetic effect to ball
+                this.ball.magneticEffect = 8000; // 8 seconds
                 this.activeEffects.set('autopilot', { duration: 8000, type: 'autopilot' });
                 this.updatePowerUpDisplay();
+                this.showFloatingText(this.width / 2, this.height / 2 - 50, 'АВТОПИЛОТ ВКЛЮЧЁН!', '#2196F3');
             },
             
             // Дебафы
@@ -732,24 +758,34 @@ export class Game {
     }
     
     addRandomMeetings(count) {
-        const startY = 50;
         const blockWidth = 90;
         const blockHeight = 25;
         const padding = 5;
         const cols = 8;
         const startX = (this.width - (cols * (blockWidth + padding) - padding)) / 2;
         
+        // Find the lowest existing meeting row
+        let lowestY = 50; // Default start position
+        if (this.meetings.length > 0) {
+            lowestY = Math.max(...this.meetings.map(m => m.y)) + blockHeight + padding;
+        }
+        
+        // Don't add meetings if they would be too low
+        if (lowestY > this.height - 200) {
+            return; // Skip adding if too close to paddle
+        }
+        
         for (let i = 0; i < count; i++) {
             const col = Math.floor(Math.random() * cols);
             const x = startX + col * (blockWidth + padding);
-            const y = startY - (i + 1) * (blockHeight + padding);
+            const y = lowestY + i * (blockHeight + padding);
             
-            const meeting = new Meeting(x, y, blockWidth, blockHeight, 'normal');
-            this.meetings.push(meeting);
-            
-            // Animate dropping down
-            meeting.targetY = startY;
-            meeting.animating = true;
+            // Only add if within visible area
+            if (y < this.height - 150) {
+                const hasBonus = Math.random() < 0.15; // 15% chance for bonus meetings
+                const meeting = new Meeting(x, y, blockWidth, blockHeight, 'normal', hasBonus);
+                this.meetings.push(meeting);
+            }
         }
         
         this.showFloatingText(this.width / 2, 100, 'НОВЫЕ ВСТРЕЧИ!', '#8B0000');

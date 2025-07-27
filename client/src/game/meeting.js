@@ -1,10 +1,11 @@
 export class Meeting {
-    constructor(x, y, width, height, type = 'normal') {
+    constructor(x, y, width, height, type = 'normal', hasBonus = false) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
         this.type = type;
+        this.hasBonus = hasBonus;
         this.maxHp = this.getMaxHp(type);
         this.hp = this.maxHp;
         this.shouldRemove = false;
@@ -211,6 +212,28 @@ export class Meeting {
         ctx.beginPath();
         ctx.roundRect(drawX + 2, drawY + 1, drawWidth - 4, drawHeight / 3, 2);
         ctx.fill();
+        
+        // Bonus indicator
+        if (this.hasBonus) {
+            const time = Date.now() * 0.003;
+            const glowIntensity = (Math.sin(time) + 1) / 2;
+            
+            // Glow effect
+            ctx.shadowColor = '#FFD700';
+            ctx.shadowBlur = 8 + glowIntensity * 4;
+            ctx.strokeStyle = `rgba(255, 215, 0, ${0.6 + glowIntensity * 0.4})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(drawX - 1, drawY - 1, drawWidth + 2, drawHeight + 2, 8);
+            ctx.stroke();
+            
+            // Gift icon
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText('🎁', drawX + drawWidth - 4, drawY + 12);
+        }
         
         ctx.restore();
     }
