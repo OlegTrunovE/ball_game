@@ -9,6 +9,7 @@ Meeting Breaker is a humorous office-themed brick breaker game styled after Goog
 Preferred communication style: Simple, everyday language.
 Language: Russian for in-game messages and UI text.
 Theme: Google Calendar visual style with authentic meeting cards and time slots.
+Meeting names: Updated to include "Техком", "Обед", "Аналитики sync", "Дизайн sync", "PM sync" as preferred corporate meeting titles.
 
 ## System Architecture
 

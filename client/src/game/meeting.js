@@ -68,13 +68,13 @@ export class Meeting {
         if (!this.fixedTitle) {
             const allTitles = [
                 'Daily',
+                'Техком',
+                'Обед', 
+                'Аналитики sync',
+                'Дизайн sync',
+                'PM sync',
                 'Планирование продукта',
-                'Встреча с бизнесом', 
-                'Технический комитет',
-                'Обед',
-                'Проработка требований',
-                'Планирование дизайна',
-                'Планирование аналитики'
+                'Встреча с бизнесом'
             ];
             
             // Assign a stable title based on position to avoid duplicates
