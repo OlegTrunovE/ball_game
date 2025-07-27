@@ -17,8 +17,8 @@ export class Game {
         this.level = 1;
         this.lives = 3;
         this.difficulty = 'office'; // office, remote, freelance
-        this.currentDay = 'Monday'; // Track current day of week
-        this.daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        this.currentDay = 'Понедельник'; // Track current day of week
+        this.daysOfWeek = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
         this.fallingMeetings = []; // Meetings that fall down after destruction
         
         // Game objects

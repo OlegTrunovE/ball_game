@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-    <title>Meeting Breaker - Office Brick Breaker Game</title>
+    <title>Meeting Breaker - Разрушитель встреч</title>
     <link rel="stylesheet" href="src/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,9 +16,9 @@
         <!-- Game UI Overlay -->
         <div id="gameUI">
             <div id="topBar">
-                <div id="score">Score: <span id="scoreValue">0</span></div>
-                <div id="level">Day: <span id="levelValue">Monday (1)</span></div>
-                <div id="lives">Lives: <span id="livesValue">3</span></div>
+                <div id="score">Очки: <span id="scoreValue">0</span></div>
+                <div id="level">День: <span id="levelValue">Понедельник (1)</span></div>
+                <div id="lives">Жизни: <span id="livesValue">3</span></div>
                 <button id="muteButton" class="ui-button">🔊</button>
             </div>
             
@@ -30,17 +30,17 @@
         <div id="menuScreen" class="screen">
             <div class="screen-content">
                 <h1>Meeting Breaker</h1>
-                <p class="subtitle">Destroy your calendar meetings!</p>
+                <p class="subtitle">Разгромите все встречи в календаре!</p>
                 <div class="menu-buttons">
-                    <button id="startButton" class="game-button">Start Game</button>
-                    <button id="instructionsButton" class="game-button">Instructions</button>
+                    <button id="startButton" class="game-button">Начать игру</button>
+                    <button id="instructionsButton" class="game-button">Инструкции</button>
                 </div>
                 <div class="difficulty-selector">
-                    <label>Difficulty:</label>
+                    <label>Сложность:</label>
                     <select id="difficultySelect">
-                        <option value="office">Office Hell</option>
-                        <option value="remote">Remote Work</option>
-                        <option value="freelance">Freelance</option>
+                        <option value="office">Офисный ад</option>
+                        <option value="remote">Удалёнка</option>
+                        <option value="freelance">Фриланс</option>
                     </select>
                 </div>
             </div>
@@ -48,56 +48,56 @@
         
         <div id="instructionsScreen" class="screen hidden">
             <div class="screen-content">
-                <h2>How to Play</h2>
+                <h2>Как играть</h2>
                 <div class="instructions">
-                    <p><strong>Goal:</strong> Destroy all meeting blocks to clear the level!</p>
-                    <h3>Meeting Types:</h3>
+                    <p><strong>Цель:</strong> Уничтожьте все встречи, чтобы пройти уровень!</p>
+                    <h3>Типы встреч:</h3>
                     <ul>
-                        <li><span class="meeting-type normal">Regular</span> - 1 hit to destroy</li>
-                        <li><span class="meeting-type urgent">Urgent</span> - Disappears after 10 seconds</li>
-                        <li><span class="meeting-type endless">Endless</span> - Requires 3 hits</li>
-                        <li><span class="meeting-type deadline">Deadline</span> - Gives bonus points</li>
+                        <li><span class="meeting-type normal">Обычные</span> - 1 удар для уничтожения</li>
+                        <li><span class="meeting-type urgent">Срочные</span> - Исчезают через 5 секунд</li>
+                        <li><span class="meeting-type endless">Бесконечные</span> - Требуют 3 удара</li>
+                        <li><span class="meeting-type deadline">Дедлайны</span> - С иконкой 🔥, требуют 3 удара</li>
                     </ul>
-                    <h3>Power-ups:</h3>
+                    <h3>Бонусы:</h3>
                     <ul>
-                        <li>☕ Coffee - Speeds up ball</li>
-                        <li>📞 Auto-responder - Expands paddle</li>
-                        <li>⚠️ Critical Error - Slows ball</li>
-                        <li>🏢 Meeting Room - Changes ball direction</li>
+                        <li>☕ Кофе - Ускоряет шарик</li>
+                        <li>📞 Автоответчик - Расширяет платформу</li>
+                        <li>⚠️ Критическая ошибка - Замедляет шарик</li>
+                        <li>🏢 Переговорка - Меняет направление шарика</li>
                     </ul>
-                    <h3>Controls:</h3>
-                    <p>Desktop: Use mouse or arrow keys to move paddle</p>
-                    <p>Mobile: Touch and drag to move paddle</p>
+                    <h3>Управление:</h3>
+                    <p>Компьютер: Мышь или стрелки для движения платформы</p>
+                    <p>Мобильный: Коснитесь и ведите для движения платформы</p>
                 </div>
-                <button id="backButton" class="game-button">Back to Menu</button>
+                <button id="backButton" class="game-button">Назад в меню</button>
             </div>
         </div>
         
         <div id="gameOverScreen" class="screen hidden">
             <div class="screen-content">
-                <h2 id="gameOverTitle">Game Over</h2>
-                <p id="finalScore">Final Score: <span>0</span></p>
+                <h2 id="gameOverTitle">Игра окончена</h2>
+                <p id="finalScore">Финальный счёт: <span>0</span></p>
                 <p id="gameOverMessage"></p>
                 <div class="menu-buttons">
-                    <button id="restartButton" class="game-button">Play Again</button>
-                    <button id="menuButton" class="game-button">Main Menu</button>
+                    <button id="restartButton" class="game-button">Играть снова</button>
+                    <button id="menuButton" class="game-button">Главное меню</button>
                 </div>
             </div>
         </div>
         
         <div id="pauseScreen" class="screen hidden">
             <div class="screen-content">
-                <h2>Game Paused</h2>
+                <h2>Игра на паузе</h2>
                 <div class="menu-buttons">
-                    <button id="resumeButton" class="game-button">Resume</button>
-                    <button id="pauseMenuButton" class="game-button">Main Menu</button>
+                    <button id="resumeButton" class="game-button">Продолжить</button>
+                    <button id="pauseMenuButton" class="game-button">Главное меню</button>
                 </div>
             </div>
         </div>
         
         <!-- Touch Controls for Mobile -->
         <div id="mobileControls" class="mobile-only">
-            <div id="touchArea">Touch and drag to move paddle</div>
+            <div id="touchArea">Коснитесь и ведите для управления платформой</div>
         </div>
     </div>
     

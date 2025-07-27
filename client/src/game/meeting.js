@@ -63,23 +63,39 @@ export class Meeting {
     }
     
     getMeetingTitle() {
-        const titles = {
-            normal: ['Daily Standup', 'Team Sync', 'Quick Chat', 'Status Update', 'Weekly Review'],
-            urgent: ['URGENT: Client Call', 'Crisis Meeting', 'ASAP Discussion', 'Hot Fix Review'],
-            endless: ['All Hands Meeting', 'Strategy Planning', 'Architecture Review', 'Quarterly Planning'],
-            deadline: ['Launch Review', 'Milestone Check', 'Release Planning', 'Deadline Review']
-        };
+        // Fixed titles that don't change during the game
+        if (!this.fixedTitle) {
+            const allTitles = [
+                'Daily',
+                'Планирование продукта',
+                'Встреча с бизнесом', 
+                'Технический комитет',
+                'Обед',
+                'Проработка требований',
+                'Планирование дизайна',
+                'Планирование аналитики'
+            ];
+            
+            // Assign a stable title based on position to avoid duplicates
+            const titleIndex = (Math.floor(this.x / 10) + Math.floor(this.y / 10)) % allTitles.length;
+            this.fixedTitle = allTitles[titleIndex];
+        }
         
-        const typeTitles = titles[this.type] || titles.normal;
-        return typeTitles[Math.floor(Math.random() * typeTitles.length)];
+        return this.fixedTitle;
     }
     
     getTimeText() {
-        const times = [
-            '9:00 AM', '10:30 AM', '2:00 PM', '3:30 PM', 
-            '11:00 AM', '1:00 PM', '4:00 PM', '9:30 AM'
-        ];
-        return times[Math.floor(Math.random() * times.length)];
+        // Fixed time that doesn't change during the game
+        if (!this.fixedTime) {
+            const times = [
+                '9:00', '10:30', '14:00', '15:30', 
+                '11:00', '13:00', '16:00', '9:30'
+            ];
+            const timeIndex = (Math.floor(this.x / 20) + Math.floor(this.y / 20)) % times.length;
+            this.fixedTime = times[timeIndex];
+        }
+        
+        return this.fixedTime;
     }
     
     render(ctx) {
