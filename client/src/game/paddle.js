@@ -42,11 +42,11 @@ export class Paddle {
         const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.height);
         
         if (this.widthMultiplier > 1) {
-            gradient.addColorStop(0, '#4CAF50'); // Green for auto-responder
-            gradient.addColorStop(1, '#2E7D32');
+            gradient.addColorStop(0, '#34a853'); // Google Green for auto-responder
+            gradient.addColorStop(1, '#2d8e43');
         } else {
-            gradient.addColorStop(0, '#495057'); // Normal gray
-            gradient.addColorStop(1, '#343A40');
+            gradient.addColorStop(0, '#5f6368'); // Google Gray
+            gradient.addColorStop(1, '#3c4043');
         }
         
         ctx.save();
@@ -70,12 +70,12 @@ export class Paddle {
         ctx.roundRect(this.x, this.y, this.width, this.height, this.height / 2);
         ctx.stroke();
         
-        // Add keyboard icon in center
+        // Add calendar icon in center (Google Calendar style)
         if (this.width > 50) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.font = '12px Inter';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = '10px Google Sans, Roboto, Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('⌨️', this.x + this.width / 2, this.y + this.height / 2 + 4);
+            ctx.fillText('📅', this.x + this.width / 2, this.y + this.height / 2 + 3);
         }
         
         ctx.restore();

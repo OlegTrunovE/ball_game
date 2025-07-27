@@ -44,20 +44,20 @@ export class Meeting {
     
     getColor() {
         const colors = {
-            normal: '#6c757d',
-            urgent: '#dc3545',
-            endless: '#007bff',
-            deadline: '#6f42c1'
+            normal: '#1a73e8',      // Google Blue
+            urgent: '#ea4335',      // Google Red
+            endless: '#34a853',     // Google Green
+            deadline: '#9c27b0'     // Purple
         };
         return colors[this.type] || colors.normal;
     }
     
     getSecondaryColor() {
         const colors = {
-            normal: '#5a6268',
-            urgent: '#c82333',
-            endless: '#0056b3',
-            deadline: '#5a1a6b'
+            normal: '#1557b0',
+            urgent: '#d33b2c',
+            endless: '#2d8e43',
+            deadline: '#7b1fa2'
         };
         return colors[this.type] || colors.normal;
     }
@@ -65,13 +65,21 @@ export class Meeting {
     getMeetingTitle() {
         const titles = {
             normal: ['Daily Standup', 'Team Sync', 'Quick Chat', 'Status Update', 'Weekly Review'],
-            urgent: ['URGENT CALL', 'Crisis Meeting', 'Emergency Sync', 'Hot Fix Discussion'],
-            endless: ['All Hands', 'Strategy Session', 'Planning Meeting', 'Architecture Review'],
-            deadline: ['Project Deadline', 'Release Planning', 'Launch Review', 'Milestone Check']
+            urgent: ['URGENT: Client Call', 'Crisis Meeting', 'ASAP Discussion', 'Hot Fix Review'],
+            endless: ['All Hands Meeting', 'Strategy Planning', 'Architecture Review', 'Quarterly Planning'],
+            deadline: ['Launch Review', 'Milestone Check', 'Release Planning', 'Deadline Review']
         };
         
         const typeTitles = titles[this.type] || titles.normal;
         return typeTitles[Math.floor(Math.random() * typeTitles.length)];
+    }
+    
+    getTimeText() {
+        const times = [
+            '9:00 AM', '10:30 AM', '2:00 PM', '3:30 PM', 
+            '11:00 AM', '1:00 PM', '4:00 PM', '9:30 AM'
+        ];
+        return times[Math.floor(Math.random() * times.length)];
     }
     
     render(ctx) {
@@ -104,22 +112,23 @@ export class Meeting {
         const drawX = this.x - (drawWidth - this.width) / 2;
         const drawY = this.y - (drawHeight - this.height) / 2;
         
-        // Create gradient
-        const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + drawHeight);
-        gradient.addColorStop(0, this.getColor());
-        gradient.addColorStop(1, this.getSecondaryColor());
-        
-        // Draw main block
-        ctx.fillStyle = gradient;
+        // Google Calendar style meeting block
+        ctx.fillStyle = this.getColor();
         ctx.beginPath();
-        ctx.roundRect(drawX, drawY, drawWidth, drawHeight, 4);
+        ctx.roundRect(drawX, drawY, drawWidth, drawHeight, 6);
         ctx.fill();
         
-        // Draw border
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        // Left border accent (Google Calendar style)
+        ctx.fillStyle = this.getSecondaryColor();
+        ctx.beginPath();
+        ctx.roundRect(drawX, drawY, 4, drawHeight, [6, 0, 0, 6]);
+        ctx.fill();
+        
+        // Subtle border
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.roundRect(drawX, drawY, drawWidth, drawHeight, 4);
+        ctx.roundRect(drawX, drawY, drawWidth, drawHeight, 6);
         ctx.stroke();
         
         // Draw HP indicators for endless meetings
@@ -138,21 +147,28 @@ export class Meeting {
             }
         }
         
-        // Draw meeting title/icon
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.font = 'bold 10px Inter';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        // Draw meeting text (Google Calendar style)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.font = 'bold 8px Google Sans, Roboto, Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
         
-        const icons = {
-            normal: '📅',
-            urgent: '🚨',
-            endless: '♾️',
-            deadline: '⏰'
-        };
+        const title = this.getMeetingTitle();
+        const maxWidth = drawWidth - 10;
         
-        const icon = icons[this.type] || icons.normal;
-        ctx.fillText(icon, drawX + drawWidth / 2, drawY + drawHeight / 2);
+        // Truncate text if too long
+        let displayText = title;
+        if (ctx.measureText(title).width > maxWidth) {
+            displayText = title.substring(0, Math.floor(title.length * maxWidth / ctx.measureText(title).width)) + '...';
+        }
+        
+        ctx.fillText(displayText, drawX + 6, drawY + 4);
+        
+        // Time text (Google Calendar style)
+        ctx.font = '7px Google Sans, Roboto, Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        const timeText = this.getTimeText();
+        ctx.fillText(timeText, drawX + 6, drawY + drawHeight - 10);
         
         // Draw timer for urgent meetings
         if (this.type === 'urgent') {

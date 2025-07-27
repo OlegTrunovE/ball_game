@@ -258,27 +258,24 @@ export class Game {
             this.soundManager.playHit();
         }
         
-        // Ball vs meetings
+        // Ball vs meetings - always bounce back toward paddle
         this.meetings.forEach((meeting, index) => {
             if (this.ball.x + this.ball.radius >= meeting.x &&
                 this.ball.x - this.ball.radius <= meeting.x + meeting.width &&
                 this.ball.y + this.ball.radius >= meeting.y &&
                 this.ball.y - this.ball.radius <= meeting.y + meeting.height) {
                 
-                // Determine bounce direction
-                const ballCenterX = this.ball.x;
-                const ballCenterY = this.ball.y;
-                const blockCenterX = meeting.x + meeting.width / 2;
-                const blockCenterY = meeting.y + meeting.height / 2;
+                // Always bounce ball back toward paddle (downward)
+                const speed = Math.sqrt(this.ball.vx * this.ball.vx + this.ball.vy * this.ball.vy);
                 
-                const dx = ballCenterX - blockCenterX;
-                const dy = ballCenterY - blockCenterY;
+                // Calculate angle based on where ball hit the meeting horizontally
+                const hitX = this.ball.x - (meeting.x + meeting.width / 2);
+                const normalizedHitX = hitX / (meeting.width / 2); // -1 to 1
+                const bounceAngle = normalizedHitX * Math.PI / 6; // Max 30 degrees
                 
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    this.ball.vx = -this.ball.vx;
-                } else {
-                    this.ball.vy = -this.ball.vy;
-                }
+                // Set new velocity toward paddle
+                this.ball.vx = Math.sin(bounceAngle) * speed * 0.8;
+                this.ball.vy = Math.abs(Math.cos(bounceAngle) * speed); // Always positive (downward)
                 
                 // Hit the meeting
                 this.hitMeeting(meeting, index);
@@ -573,6 +570,9 @@ export class Game {
         // Clear canvas
         this.ctx.clearRect(0, 0, this.width, this.height);
         
+        // Draw Google Calendar-style background grid
+        this.drawCalendarGrid();
+        
         if (this.state === 'playing' || this.state === 'paused') {
             // Draw game objects
             if (this.ball) this.ball.render(this.ctx);
@@ -628,5 +628,70 @@ export class Game {
         this.render();
         
         requestAnimationFrame((time) => this.gameLoop(time));
+    }
+    
+    drawCalendarGrid() {
+        this.ctx.save();
+        
+        // Draw time slots background (like Google Calendar)
+        const timeSlotHeight = 30;
+        const hours = ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM'];
+        
+        this.ctx.strokeStyle = '#e8eaed';
+        this.ctx.lineWidth = 1;
+        this.ctx.font = '10px Google Sans, Roboto, Arial';
+        this.ctx.fillStyle = '#5f6368';
+        this.ctx.textAlign = 'left';
+        this.ctx.textBaseline = 'middle';
+        
+        // Draw horizontal grid lines and time labels
+        for (let i = 0; i <= hours.length; i++) {
+            const y = 40 + i * timeSlotHeight;
+            if (y < this.height - 60) {
+                // Grid line
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, y);
+                this.ctx.lineTo(this.width, y);
+                this.ctx.stroke();
+                
+                // Time label
+                if (i < hours.length) {
+                    this.ctx.fillText(hours[i], 5, y + timeSlotHeight / 2);
+                }
+            }
+        }
+        
+        // Draw vertical lines for days
+        const dayWidth = this.width / 7;
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        
+        this.ctx.textAlign = 'center';
+        this.ctx.font = 'bold 12px Google Sans, Roboto, Arial';
+        this.ctx.fillStyle = '#3c4043';
+        
+        for (let i = 0; i <= 7; i++) {
+            const x = i * dayWidth;
+            
+            // Vertical grid line
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, 20);
+            this.ctx.lineTo(x, this.height - 40);
+            this.ctx.stroke();
+            
+            // Day label
+            if (i < days.length) {
+                this.ctx.fillText(days[i], x + dayWidth / 2, 15);
+            }
+        }
+        
+        // Header background
+        this.ctx.fillStyle = 'rgba(248, 249, 250, 0.9)';
+        this.ctx.fillRect(0, 0, this.width, 25);
+        
+        // Left time column background
+        this.ctx.fillStyle = 'rgba(248, 249, 250, 0.7)';
+        this.ctx.fillRect(0, 25, 50, this.height - 65);
+        
+        this.ctx.restore();
     }
 }

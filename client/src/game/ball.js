@@ -63,16 +63,16 @@ export class Ball {
             this.x, this.y, this.radius
         );
         
-        // Color based on speed
+        // Color based on speed (Google colors)
         if (this.speedMultiplier > 1) {
-            gradient.addColorStop(0, '#FFD700'); // Gold for coffee boost
-            gradient.addColorStop(1, '#FF8C00');
+            gradient.addColorStop(0, '#fbbc04'); // Google Yellow for coffee boost
+            gradient.addColorStop(1, '#f9ab00');
         } else if (this.speedMultiplier < 1) {
-            gradient.addColorStop(0, '#FF6B6B'); // Red for error
-            gradient.addColorStop(1, '#DC3545');
+            gradient.addColorStop(0, '#ea4335'); // Google Red for error
+            gradient.addColorStop(1, '#d33b2c');
         } else {
-            gradient.addColorStop(0, '#74C0FC'); // Normal blue
-            gradient.addColorStop(1, '#339AF0');
+            gradient.addColorStop(0, '#4285f4'); // Google Blue
+            gradient.addColorStop(1, '#1a73e8');
         }
         
         ctx.save();
