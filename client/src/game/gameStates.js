@@ -194,7 +194,7 @@ export class GameStates {
     }
     
     showMessage(text, duration = 3000) {
-        // Create temporary message overlay
+        // Create temporary message overlay that doesn't block input
         const messageDiv = document.createElement('div');
         messageDiv.style.cssText = `
             position: fixed;
@@ -210,6 +210,8 @@ export class GameStates {
             z-index: 200;
             text-align: center;
             animation: messageAppear 0.3s ease-out;
+            pointer-events: none;
+            user-select: none;
         `;
         
         messageDiv.textContent = text;
