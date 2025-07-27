@@ -2,11 +2,13 @@
 
 ## Overview
 
-Meeting Breaker is a modern web-based brick breaker game with an office theme. Players control a paddle to bounce a ball and destroy meeting blocks representing different types of office meetings. The application is built using a modern full-stack architecture with React/TypeScript on the frontend and Express.js on the backend, featuring real-time canvas-based game mechanics.
+Meeting Breaker is a humorous office-themed brick breaker game styled after Google Calendar. Players control a calendar paddle to bounce a ball (representing productivity) and destroy meeting blocks that look like real calendar events. The game features progressive difficulty through days of the week, falling meeting animations, funny Russian phrases, and authentic Google Calendar visual design with time slots and day headers.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Language: Russian for in-game messages and UI text.
+Theme: Google Calendar visual style with authentic meeting cards and time slots.
 
 ## System Architecture
 
@@ -33,17 +35,21 @@ Preferred communication style: Simple, everyday language.
 ## Key Components
 
 ### Game Engine (`client/src/game/`)
-- **Game.js**: Main game controller managing state, objects, and game loop
-- **Ball.js**: Ball physics with trail effects and speed multipliers
-- **Paddle.js**: Player-controlled paddle with smooth movement and visual effects
-- **Meeting.js**: Meeting blocks with different types (normal, urgent, endless, deadline)
-- **PowerUp.js**: Special effects system (coffee, auto-responder, etc.)
+- **Game.js**: Main game controller with Google Calendar styling and day progression
+- **Ball.js**: Ball physics with Google-colored trail effects and speed multipliers
+- **Paddle.js**: Calendar-styled paddle with smooth movement and calendar icon
+- **Meeting.js**: Google Calendar-style meeting blocks with realistic titles and times
+- **PowerUp.js**: Office-themed power-ups (coffee, auto-responder, etc.)
 - **InputManager.js**: Cross-platform input handling (keyboard, mouse, touch)
 - **SoundManager.js**: Audio system with mute controls and sound effects
+- **GameStates.js**: Screen management with Russian funny messages system
 
 ### UI System
-- **Game States**: Menu, instructions, game over screens with state management
-- **Canvas Overlay**: HUD elements for score, lives, and active power-ups
+- **Game States**: Menu, instructions, game over screens with day progression dialogs
+- **Canvas Overlay**: Google-styled HUD showing day/level, score, and lives
+- **Calendar Grid**: Authentic Google Calendar background with time slots and days
+- **Falling Meetings**: Physics-based falling animation when meetings are destroyed
+- **Funny Messages**: Random Russian phrases when meetings are cancelled
 - **Responsive Design**: Mobile-first approach with touch controls
 
 ### State Management

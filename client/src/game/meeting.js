@@ -14,7 +14,7 @@ export class Meeting {
         
         // Urgent meetings have a timer
         if (type === 'urgent') {
-            this.expirationTime = 10000; // 10 seconds
+            this.expirationTime = 5000; // 5 seconds (as per requirements)
         }
     }
     
@@ -169,6 +169,14 @@ export class Meeting {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         const timeText = this.getTimeText();
         ctx.fillText(timeText, drawX + 6, drawY + drawHeight - 10);
+        
+        // Draw fire icon for deadline meetings
+        if (this.type === 'deadline') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = '12px Google Sans, Roboto, Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText('🔥', drawX + drawWidth - 6, drawY + 14);
+        }
         
         // Draw timer for urgent meetings
         if (this.type === 'urgent') {

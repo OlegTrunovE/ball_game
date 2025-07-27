@@ -17,6 +17,9 @@ export class Game {
         this.level = 1;
         this.lives = 3;
         this.difficulty = 'office'; // office, remote, freelance
+        this.currentDay = 'Monday'; // Track current day of week
+        this.daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        this.fallingMeetings = []; // Meetings that fall down after destruction
         
         // Game objects
         this.ball = null;
@@ -117,11 +120,16 @@ export class Game {
         this.meetings = [];
         this.powerUps = [];
         this.particles = [];
+        this.fallingMeetings = [];
         this.activeEffects.clear();
+        
+        // Start random meeting spawner
+        this.startRandomMeetingSpawner();
     }
     
     getDifficultySettings() {
-        const settings = {
+        // Base settings by difficulty mode
+        const baseSettings = {
             office: {
                 ballSpeed: 4,
                 paddleSpeed: 6,
@@ -148,7 +156,32 @@ export class Game {
             }
         };
         
-        return settings[this.difficulty] || settings.office;
+        const base = baseSettings[this.difficulty] || baseSettings.office;
+        
+        // Modify by day of week (progressive difficulty)
+        const dayIndex = (this.level - 1) % this.daysOfWeek.length;
+        const dayMultiplier = 1 + (dayIndex * 0.2); // Each day gets 20% harder
+        
+        // Friday is especially challenging
+        if (dayIndex === 4) { // Friday
+            return {
+                ...base,
+                ballSpeed: base.ballSpeed * 1.3,
+                meetingRows: Math.min(8, base.meetingRows + 2),
+                urgentChance: Math.min(0.3, base.urgentChance * 2),
+                endlessChance: Math.min(0.35, base.endlessChance * 1.5),
+                deadlineChance: Math.min(0.25, base.deadlineChance * 1.8)
+            };
+        }
+        
+        return {
+            ...base,
+            ballSpeed: base.ballSpeed * dayMultiplier,
+            meetingRows: Math.min(7, Math.floor(base.meetingRows * dayMultiplier)),
+            urgentChance: Math.min(0.25, base.urgentChance * dayMultiplier),
+            endlessChance: Math.min(0.3, base.endlessChance * dayMultiplier),
+            deadlineChance: Math.min(0.2, base.deadlineChance * dayMultiplier)
+        };
     }
     
     generateMeetings() {
@@ -197,6 +230,10 @@ export class Game {
         // Update meetings (for urgent ones that expire)
         this.meetings.forEach(meeting => meeting.update(deltaTime));
         this.meetings = this.meetings.filter(meeting => !meeting.shouldRemove);
+        
+        // Update falling meetings
+        this.fallingMeetings.forEach(meeting => meeting.update(deltaTime));
+        this.fallingMeetings = this.fallingMeetings.filter(meeting => meeting.y < this.height + 100);
         
         // Update power-ups
         this.powerUps.forEach(powerUp => powerUp.update(deltaTime));
@@ -314,6 +351,12 @@ export class Game {
             
             // Show floating score
             this.showFloatingScore(meeting.x + meeting.width / 2, meeting.y, points);
+            
+            // Show funny message
+            this.showFunnyMessage(meeting.type);
+            
+            // Create falling meeting animation
+            this.createFallingMeeting(meeting);
             
             // Chance to drop power-up
             if (Math.random() < 0.15) {
@@ -435,9 +478,20 @@ export class Game {
     
     nextLevel() {
         this.level++;
-        this.showMessage(`Level ${this.level}!`);
-        this.generateMeetings();
-        this.ball.reset(this.width / 2, this.height - 100);
+        
+        // Update current day
+        const dayIndex = (this.level - 1) % this.daysOfWeek.length;
+        this.currentDay = this.daysOfWeek[dayIndex];
+        
+        // Show day completion message
+        if (this.level > 1) {
+            const previousDay = this.daysOfWeek[(dayIndex - 1 + this.daysOfWeek.length) % this.daysOfWeek.length];
+            this.showDayCompletionDialog(previousDay, this.currentDay);
+        } else {
+            this.generateMeetings();
+            this.ball.reset(this.width / 2, this.height - 100);
+        }
+        
         this.updateUI();
         
         // Bonus points for completing level
@@ -551,8 +605,8 @@ export class Game {
     }
     
     updateUI() {
-        document.getElementById('scoreValue').textContent = this.score;
-        document.getElementById('levelValue').textContent = this.level;
+        document.getElementById('scoreValue').textContent = this.score.toLocaleString();
+        document.getElementById('levelValue').textContent = `${this.currentDay} (${this.level})`;
         document.getElementById('livesValue').textContent = this.lives;
     }
     
@@ -580,6 +634,9 @@ export class Game {
             
             // Draw meetings
             this.meetings.forEach(meeting => meeting.render(this.ctx));
+            
+            // Draw falling meetings
+            this.fallingMeetings.forEach(meeting => meeting.render(this.ctx));
             
             // Draw power-ups
             this.powerUps.forEach(powerUp => powerUp.render(this.ctx));
@@ -693,5 +750,199 @@ export class Game {
         this.ctx.fillRect(0, 25, 50, this.height - 65);
         
         this.ctx.restore();
+    }
+    
+    startRandomMeetingSpawner() {
+        // Stop any existing spawner
+        if (this.randomMeetingInterval) {
+            clearInterval(this.randomMeetingInterval);
+        }
+        
+        // Spawn random meetings every 15-30 seconds
+        this.randomMeetingInterval = setInterval(() => {
+            if (this.state === 'playing' && this.meetings.length < 50) {
+                this.spawnRandomMeeting();
+            }
+        }, 20000 + Math.random() * 20000); // Every 20-40 seconds
+    }
+    
+    spawnRandomMeeting() {
+        // Find empty spot in the meeting area
+        const cols = 8;
+        const blockWidth = 90;
+        const blockHeight = 25;
+        const padding = 5;
+        const startX = (this.width - (cols * (blockWidth + padding) - padding)) / 2;
+        const startY = 50;
+        
+        // Try to find empty spot
+        for (let attempts = 0; attempts < 20; attempts++) {
+            const col = Math.floor(Math.random() * cols);
+            const row = Math.floor(Math.random() * 6);
+            const x = startX + col * (blockWidth + padding);
+            const y = startY + row * (blockHeight + padding);
+            
+            // Check if spot is empty
+            const occupied = this.meetings.some(meeting => 
+                Math.abs(meeting.x - x) < blockWidth && 
+                Math.abs(meeting.y - y) < blockHeight
+            );
+            
+            if (!occupied) {
+                const meeting = new Meeting(x, y, blockWidth, blockHeight, 'normal');
+                meeting.isRandom = true;
+                this.meetings.push(meeting);
+                this.gameStates.showMessage('Внеплановая задача появилась!', 1500);
+                break;
+            }
+        }
+    }
+    
+    createFallingMeeting(meeting) {
+        // Create a copy of the meeting for falling animation
+        const fallingMeeting = {
+            x: meeting.x,
+            y: meeting.y,
+            width: meeting.width,
+            height: meeting.height,
+            type: meeting.type,
+            vx: (Math.random() - 0.5) * 100, // Random horizontal velocity
+            vy: 50 + Math.random() * 100, // Downward velocity
+            rotation: 0,
+            rotationSpeed: (Math.random() - 0.5) * 5,
+            opacity: 1,
+            getColor: () => meeting.getColor(),
+            getMeetingTitle: () => meeting.getMeetingTitle(),
+            getTimeText: () => meeting.getTimeText(),
+            update: function(deltaTime) {
+                this.x += this.vx * deltaTime;
+                this.y += this.vy * deltaTime;
+                this.vy += 200 * deltaTime; // Gravity
+                this.rotation += this.rotationSpeed * deltaTime;
+                this.opacity = Math.max(0, this.opacity - deltaTime * 2);
+            },
+            render: function(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                ctx.rotate(this.rotation);
+                
+                // Draw the meeting card
+                ctx.fillStyle = this.getColor();
+                ctx.beginPath();
+                ctx.roundRect(-this.width / 2, -this.height / 2, this.width, this.height, 6);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        };
+        
+        this.fallingMeetings.push(fallingMeeting);
+    }
+    
+    showFunnyMessage(meetingType) {
+        const messages = {
+            normal: [
+                'О, отменили!', 
+                'На 15 минут перенесли... навсегда!',
+                'Внезапно все заболели!',
+                'Отлично, время для кофе!'
+            ],
+            urgent: [
+                'Срочность отменена!',
+                'Критичность понижена!',
+                'Паника закончилась!',
+                'А оказалось не так уж срочно!'
+            ],
+            endless: [
+                'Бесконечность побеждена!',
+                'Наконец-то закончилось!',
+                'Все проснулись!',
+                'Переговорка освобождена!'
+            ],
+            deadline: [
+                'Дедлайн сдвинули!',
+                'Время есть!',
+                'Расслабьтесь, успеем!',
+                'Клиент передумал!'
+            ]
+        };
+        
+        const typeMessages = messages[meetingType] || messages.normal;
+        const message = typeMessages[Math.floor(Math.random() * typeMessages.length)];
+        this.gameStates.showMessage(message, 2000);
+    }
+    
+    showDayCompletionDialog(completedDay, nextDay) {
+        // Create day completion overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            animation: fadeIn 0.3s ease-out;
+        `;
+        
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        `;
+        
+        dialog.innerHTML = `
+            <h2 style="color: #34a853; margin-bottom: 20px; font-size: 2em;">🎉 ${completedDay} завершён!</h2>
+            <p style="color: #5f6368; margin-bottom: 30px; font-size: 1.2em;">
+                Все встречи разгромлены! Готовы к новым вызовам?
+            </p>
+            <h3 style="color: #1a73e8; margin-bottom: 30px;">Перейти к ${nextDay}?</h3>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button id="continueDay" style="
+                    background: #1a73e8;
+                    color: white;
+                    border: none;
+                    padding: 15px 30px;
+                    border-radius: 8px;
+                    font-size: 1.1em;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">Да, вперёд!</button>
+                <button id="backToMenu" style="
+                    background: #f8f9fa;
+                    color: #5f6368;
+                    border: 1px solid #dadce0;
+                    padding: 15px 30px;
+                    border-radius: 8px;
+                    font-size: 1.1em;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">В меню</button>
+            </div>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        // Event handlers
+        document.getElementById('continueDay').addEventListener('click', () => {
+            document.body.removeChild(overlay);
+            this.generateMeetings();
+            this.ball.reset(this.width / 2, this.height - 100);
+        });
+        
+        document.getElementById('backToMenu').addEventListener('click', () => {
+            document.body.removeChild(overlay);
+            this.showMenu();
+        });
     }
 }
