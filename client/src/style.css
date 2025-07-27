@@ -374,3 +374,14 @@ canvas, .screen, .ui-button, .game-button {
     user-select: none;
     -webkit-tap-highlight-color: transparent;
 }
+
+/* Difficulty Description */
+.difficulty-description {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+}

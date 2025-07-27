@@ -272,4 +272,19 @@ export class GameStates {
             }
         });
     }
+    
+    updateDifficultyDescription() {
+        const difficultySelect = document.getElementById('difficultySelect');
+        const description = document.getElementById('difficultyDescription');
+        
+        if (!difficultySelect || !description) return;
+        
+        const descriptions = {
+            easy: 'Медленный шарик, широкая платформа, больше бонусов, меньше дебафов. Идеально для начинающих!',
+            medium: 'Умеренная скорость шарика, стандартная платформа, сбалансированные бонусы и дебафы',
+            hard: 'Быстрый шарик, узкая платформа, много дедлайнов и ловушек. Для опытных игроков!'
+        };
+        
+        description.textContent = descriptions[difficultySelect.value] || descriptions.medium;
+    }
 }

@@ -2,9 +2,12 @@ import { Ball } from './ball.js';
 import { Paddle } from './paddle.js';
 import { Meeting } from './meeting.js';
 import { PowerUp } from './powerup.js';
+import { Bonus } from './bonus.js';
 import { SoundManager } from './soundManager.js';
 import { InputManager } from './inputManager.js';
 import { GameStates } from './gameStates.js';
+import { DifficultyManager } from './difficultyManager.js';
+import { UpgradeManager } from './upgradeManager.js';
 
 export class Game {
     constructor() {
@@ -26,10 +29,18 @@ export class Game {
         this.paddle = null;
         this.meetings = [];
         this.powerUps = [];
+        this.bonuses = [];
         this.particles = [];
+        this.randomMeetings = [];
         
         // Active effects
         this.activeEffects = new Map();
+        
+        // New systems
+        this.upgradeManager = new UpgradeManager(this);
+        this.ballDamageMultiplier = 1;
+        this.lastRandomMeetingTime = 0;
+        this.randomMeetingInterval = 10000; // 10 seconds
         
         // Timing
         this.lastTime = 0;
@@ -100,88 +111,44 @@ export class Game {
     }
     
     initGameObjects() {
+        const settings = this.getDifficultySettings();
+        
         // Create ball
         this.ball = new Ball(
             this.width / 2,
             this.height - 100,
             5,
-            this.getDifficultySettings().ballSpeed
+            settings.ballSpeed
         );
+        this.ball.originalSpeed = settings.ballSpeed;
         
         // Create paddle
         this.paddle = new Paddle(
-            this.width / 2 - 50,
+            this.width / 2 - settings.paddleWidth / 2,
             this.height - 30,
-            100,
+            settings.paddleWidth,
             15
         );
+        this.paddle.originalWidth = settings.paddleWidth;
         
         // Clear arrays
         this.meetings = [];
         this.powerUps = [];
+        this.bonuses = [];
         this.particles = [];
         this.fallingMeetings = [];
+        this.randomMeetings = [];
         this.activeEffects.clear();
+        
+        // Apply upgrades
+        this.upgradeManager.updateGameStats();
         
         // Start random meeting spawner
         this.startRandomMeetingSpawner();
     }
     
     getDifficultySettings() {
-        // Base settings by difficulty mode
-        const baseSettings = {
-            office: {
-                ballSpeed: 4,
-                paddleSpeed: 6,
-                meetingRows: 4,
-                urgentChance: 0.1,
-                endlessChance: 0.15,
-                deadlineChance: 0.1
-            },
-            remote: {
-                ballSpeed: 5,
-                paddleSpeed: 4,
-                meetingRows: 5,
-                urgentChance: 0.15,
-                endlessChance: 0.2,
-                deadlineChance: 0.08
-            },
-            freelance: {
-                ballSpeed: 3,
-                paddleSpeed: 7,
-                meetingRows: 3,
-                urgentChance: 0.05,
-                endlessChance: 0.1,
-                deadlineChance: 0.2
-            }
-        };
-        
-        const base = baseSettings[this.difficulty] || baseSettings.office;
-        
-        // Modify by day of week (progressive difficulty)
-        const dayIndex = (this.level - 1) % this.daysOfWeek.length;
-        const dayMultiplier = 1 + (dayIndex * 0.2); // Each day gets 20% harder
-        
-        // Friday is especially challenging
-        if (dayIndex === 4) { // Friday
-            return {
-                ...base,
-                ballSpeed: base.ballSpeed * 1.3,
-                meetingRows: Math.min(8, base.meetingRows + 2),
-                urgentChance: Math.min(0.3, base.urgentChance * 2),
-                endlessChance: Math.min(0.35, base.endlessChance * 1.5),
-                deadlineChance: Math.min(0.25, base.deadlineChance * 1.8)
-            };
-        }
-        
-        return {
-            ...base,
-            ballSpeed: base.ballSpeed * dayMultiplier,
-            meetingRows: Math.min(7, Math.floor(base.meetingRows * dayMultiplier)),
-            urgentChance: Math.min(0.25, base.urgentChance * dayMultiplier),
-            endlessChance: Math.min(0.3, base.endlessChance * dayMultiplier),
-            deadlineChance: Math.min(0.2, base.deadlineChance * dayMultiplier)
-        };
+        return DifficultyManager.getDifficultySettings(this.difficulty, this.level);
     }
     
     generateMeetings() {
@@ -238,6 +205,17 @@ export class Game {
         // Update power-ups
         this.powerUps.forEach(powerUp => powerUp.update(deltaTime));
         this.powerUps = this.powerUps.filter(powerUp => !powerUp.shouldRemove);
+        
+        // Update bonuses
+        this.bonuses.forEach(bonus => bonus.update(deltaTime));
+        this.bonuses = this.bonuses.filter(bonus => !bonus.shouldRemove);
+        
+        // Update random meetings
+        this.randomMeetings.forEach(meeting => meeting.update(deltaTime));
+        this.randomMeetings = this.randomMeetings.filter(meeting => !meeting.shouldRemove);
+        
+        // Spawn random meetings
+        this.spawnRandomMeetings(deltaTime);
         
         // Update particles
         this.particles.forEach(particle => particle.update(deltaTime));
@@ -331,6 +309,18 @@ export class Game {
             }
         });
         
+        // Paddle vs bonuses
+        this.bonuses.forEach((bonus, index) => {
+            if (bonus.x + bonus.width >= this.paddle.x &&
+                bonus.x <= this.paddle.x + this.paddle.width &&
+                bonus.y + bonus.height >= this.paddle.y &&
+                bonus.y <= this.paddle.y + this.paddle.height) {
+                
+                this.collectBonus(bonus);
+                this.bonuses.splice(index, 1);
+            }
+        });
+        
         // Ball falls below paddle
         if (this.ball.y > this.height + 50) {
             this.loseLife();
@@ -338,7 +328,15 @@ export class Game {
     }
     
     hitMeeting(meeting, index) {
-        meeting.hit();
+        // Apply damage with potential critical hit
+        const damageMultiplier = this.upgradeManager.getDamageMultiplier();
+        if (damageMultiplier > 1) {
+            meeting.hp = 0; // Critical hit destroys instantly
+            this.showFloatingText(meeting.x + meeting.width / 2, meeting.y - 20, 'КРИТИЧЕСКИЙ УДАР!', '#FFD700');
+        } else {
+            meeting.hit();
+        }
+        
         this.soundManager.playHit();
         
         // Create particles
@@ -358,8 +356,17 @@ export class Game {
             // Create falling meeting animation
             this.createFallingMeeting(meeting);
             
-            // Chance to drop power-up
-            if (Math.random() < 0.15) {
+            // Chance to drop power-up or bonus
+            const settings = this.getDifficultySettings();
+            const bonusChance = settings.bonusChance * this.upgradeManager.getBonusChanceMultiplier();
+            const debuffChance = settings.debuffChance;
+            
+            const rand = Math.random();
+            if (rand < bonusChance) {
+                this.dropBonus(meeting.x + meeting.width / 2, meeting.y + meeting.height, 'bonus');
+            } else if (rand < bonusChance + debuffChance) {
+                this.dropBonus(meeting.x + meeting.width / 2, meeting.y + meeting.height, 'debuff');
+            } else if (rand < bonusChance + debuffChance + 0.1) {
                 this.dropPowerUp(meeting.x + meeting.width / 2, meeting.y + meeting.height);
             }
             
@@ -483,19 +490,23 @@ export class Game {
         const dayIndex = (this.level - 1) % this.daysOfWeek.length;
         this.currentDay = this.daysOfWeek[dayIndex];
         
-        // Show day completion message
+        // Show upgrade screen after completing a day (except first level)
         if (this.level > 1) {
-            const previousDay = this.daysOfWeek[(dayIndex - 1 + this.daysOfWeek.length) % this.daysOfWeek.length];
-            this.showDayCompletionDialog(previousDay, this.currentDay);
+            this.state = 'upgrading';
+            this.upgradeManager.showUpgradeScreen();
         } else {
-            this.generateMeetings();
-            this.ball.reset(this.width / 2, this.height - 100);
+            this.continueToNextLevel();
         }
-        
-        this.updateUI();
         
         // Bonus points for completing level
         this.score += 1000 * this.level;
+    }
+    
+    continueToNextLevel() {
+        this.generateMeetings();
+        this.ball.reset(this.width / 2, this.height - 100);
+        this.state = 'playing';
+        this.updateUI();
     }
     
     gameOver() {
@@ -620,6 +631,201 @@ export class Game {
         }
     }
     
+    // New methods for enhanced gameplay
+    dropBonus(x, y, type) {
+        let bonusType;
+        if (type === 'bonus') {
+            bonusType = DifficultyManager.getRandomBonusType();
+        } else {
+            bonusType = DifficultyManager.getRandomDebuffType();
+        }
+        
+        this.bonuses.push(new Bonus(x - 17, y, bonusType));
+    }
+    
+    collectBonus(bonus) {
+        const data = bonus.getBonusData();
+        this.applyBonusEffect(bonus.type);
+        this.soundManager.playSuccess();
+        
+        // Show notification
+        const message = data.isDebuff ? 
+            `${data.name}: ${data.description}` : 
+            `${data.name}: ${data.description}`;
+        this.gameStates.showMessage(message);
+    }
+    
+    applyBonusEffect(type) {
+        const effects = {
+            // Бонусы
+            coffee: () => {
+                this.ball.speedMultiplier = 1.6;
+                this.activeEffects.set('coffee', { duration: 10000, type: 'coffee' });
+                this.updatePowerUpDisplay();
+            },
+            autoresponder: () => {
+                this.paddle.widthMultiplier = 1.8;
+                this.activeEffects.set('autoresponder', { duration: 15000, type: 'autoresponder' });
+                this.updatePowerUpDisplay();
+            },
+            motivation: () => {
+                this.ballDamageMultiplier = 2;
+                this.activeEffects.set('motivation', { duration: 12000, type: 'motivation' });
+                this.updatePowerUpDisplay();
+            },
+            refactoring: () => {
+                this.removeRandomMeetingRow();
+            },
+            autopilot: () => {
+                this.activateMagneticBall();
+                this.activeEffects.set('autopilot', { duration: 8000, type: 'autopilot' });
+                this.updatePowerUpDisplay();
+            },
+            
+            // Дебафы
+            jira_trap: () => {
+                this.addRandomMeetings(3);
+            },
+            useless_call: () => {
+                this.ball.speedMultiplier = 0.5;
+                this.activeEffects.set('useless_call', { duration: 8000, type: 'useless_call' });
+                this.updatePowerUpDisplay();
+            },
+            manager_distractor: () => {
+                this.ball.vx = -this.ball.vx * 1.2;
+                this.ball.vy = -this.ball.vy * 1.2;
+            }
+        };
+        
+        if (effects[type]) {
+            effects[type]();
+        }
+    }
+    
+    removeRandomMeetingRow() {
+        if (this.meetings.length === 0) return;
+        
+        // Find the lowest row with meetings
+        const rows = {};
+        this.meetings.forEach(meeting => {
+            const row = Math.floor(meeting.y / 30);
+            if (!rows[row]) rows[row] = [];
+            rows[row].push(meeting);
+        });
+        
+        const rowNumbers = Object.keys(rows).map(Number);
+        if (rowNumbers.length > 0) {
+            const targetRow = Math.max(...rowNumbers);
+            const meetingsToRemove = rows[targetRow];
+            
+            meetingsToRemove.forEach(meeting => {
+                const index = this.meetings.indexOf(meeting);
+                if (index !== -1) {
+                    this.score += this.getMeetingPoints(meeting.type);
+                    this.createParticles(meeting.x + meeting.width / 2, meeting.y + meeting.height / 2, '#9C27B0');
+                    this.meetings.splice(index, 1);
+                }
+            });
+            
+            this.showFloatingText(this.width / 2, 100, 'РЯД УДАЛЁН!', '#9C27B0');
+        }
+    }
+    
+    addRandomMeetings(count) {
+        const startY = 50;
+        const blockWidth = 90;
+        const blockHeight = 25;
+        const padding = 5;
+        const cols = 8;
+        const startX = (this.width - (cols * (blockWidth + padding) - padding)) / 2;
+        
+        for (let i = 0; i < count; i++) {
+            const col = Math.floor(Math.random() * cols);
+            const x = startX + col * (blockWidth + padding);
+            const y = startY - (i + 1) * (blockHeight + padding);
+            
+            const meeting = new Meeting(x, y, blockWidth, blockHeight, 'normal');
+            this.meetings.push(meeting);
+            
+            // Animate dropping down
+            meeting.targetY = startY;
+            meeting.animating = true;
+        }
+        
+        this.showFloatingText(this.width / 2, 100, 'НОВЫЕ ВСТРЕЧИ!', '#8B0000');
+    }
+    
+    activateMagneticBall() {
+        // This effect will be handled in ball update
+        this.magneticEffect = true;
+    }
+    
+    spawnRandomMeetings(deltaTime) {
+        const settings = this.getDifficultySettings();
+        const now = Date.now();
+        
+        if (now - this.lastRandomMeetingTime > this.randomMeetingInterval && 
+            Math.random() < settings.randomMeetingChance * deltaTime) {
+            
+            this.lastRandomMeetingTime = now;
+            this.addRandomMeetings(1);
+        }
+    }
+    
+    showFloatingText(x, y, text, color) {
+        this.particles.push({
+            x: x,
+            y: y,
+            vx: 0,
+            vy: -30,
+            life: 3,
+            maxLife: 3,
+            text: text,
+            color: color,
+            size: 20,
+            update: function(deltaTime) {
+                this.y += this.vy * deltaTime;
+                this.life -= deltaTime;
+            }
+        });
+    }
+    
+    showFunnyMessage(meetingType) {
+        const messages = [
+            'Митинг отменён! 🎉',
+            'Перенос на завтра! 📅',
+            'Это вообще зачем? 🤔',
+            'О, отменили! 😌',
+            'Наконец-то свобода! 🕊️',
+            'Время для кофе! ☕',
+            'Продуктивность растёт! 📈'
+        ];
+        
+        const message = messages[Math.floor(Math.random() * messages.length)];
+        this.gameStates.showMessage(message, 2000);
+    }
+    
+    createFallingMeeting(meeting) {
+        const fallingMeeting = Object.assign({}, meeting);
+        fallingMeeting.vy = 100;
+        fallingMeeting.vx = (Math.random() - 0.5) * 50;
+        fallingMeeting.rotationSpeed = (Math.random() - 0.5) * 0.1;
+        fallingMeeting.rotation = 0;
+        fallingMeeting.update = function(deltaTime) {
+            this.x += this.vx * deltaTime;
+            this.y += this.vy * deltaTime;
+            this.vy += 200 * deltaTime; // gravity
+            this.rotation += this.rotationSpeed;
+        };
+        
+        this.fallingMeetings.push(fallingMeeting);
+    }
+    
+    startRandomMeetingSpawner() {
+        // Reset timer
+        this.lastRandomMeetingTime = Date.now();
+    }
+    
     render() {
         // Clear canvas
         this.ctx.clearRect(0, 0, this.width, this.height);
@@ -640,6 +846,9 @@ export class Game {
             
             // Draw power-ups
             this.powerUps.forEach(powerUp => powerUp.render(this.ctx));
+            
+            // Draw bonuses
+            this.bonuses.forEach(bonus => bonus.render(this.ctx));
             
             // Draw particles
             this.particles.forEach(particle => {
