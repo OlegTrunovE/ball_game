@@ -194,8 +194,12 @@ export class GameStates {
     }
     
     showMessage(text, duration = 3000) {
+        // Remove any existing messages first
+        this.clearExistingMessages();
+        
         // Create temporary message overlay that doesn't block input
         const messageDiv = document.createElement('div');
+        messageDiv.className = 'game-notification-message';
         messageDiv.style.cssText = `
             position: fixed;
             top: 50%;
@@ -248,12 +252,24 @@ export class GameStates {
         
         // Remove after duration
         setTimeout(() => {
-            messageDiv.style.animation = 'messageDisappear 0.3s ease-out';
-            setTimeout(() => {
-                if (messageDiv.parentNode) {
-                    messageDiv.parentNode.removeChild(messageDiv);
-                }
-            }, 300);
+            if (document.body.contains(messageDiv)) {
+                messageDiv.style.animation = 'messageDisappear 0.3s ease-out';
+                setTimeout(() => {
+                    if (document.body.contains(messageDiv)) {
+                        document.body.removeChild(messageDiv);
+                    }
+                }, 300);
+            }
         }, duration);
+    }
+    
+    clearExistingMessages() {
+        // Remove all existing notification messages
+        const existingMessages = document.querySelectorAll('.game-notification-message');
+        existingMessages.forEach(message => {
+            if (document.body.contains(message)) {
+                document.body.removeChild(message);
+            }
+        });
     }
 }
